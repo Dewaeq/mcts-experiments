@@ -68,6 +68,10 @@ impl Game {
         self.last_move
     }
 
+    pub fn turn(&self) -> usize {
+        self.turn
+    }
+
     pub fn is_filled_col(&self, col: usize) -> bool {
         let (nrows, _) = self.shape();
         self.grid[nrows - 1][col] != EMPTY_CELL

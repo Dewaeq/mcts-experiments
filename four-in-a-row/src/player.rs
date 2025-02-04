@@ -9,14 +9,14 @@ use crate::{
 #[derive(Clone, Copy)]
 pub enum Player {
     Human,
-    Ai,
+    Ai(u128),
 }
 
 impl Player {
     pub fn get_move(self, game: &Game) -> usize {
         match self {
             Player::Human => HumanPlayer::get_move(game),
-            Player::Ai => AiPlayer::get_move(game),
+            Player::Ai(search_time) => AiPlayer::get_move(game, search_time),
         }
     }
 }
@@ -41,15 +41,21 @@ impl HumanPlayer {
 }
 
 impl AiPlayer {
-    fn get_move(game: &Game) -> usize {
+    fn get_move(game: &Game, search_time: u128) -> usize {
+        let me = game.turn();
+
         let mut tree = SearchTree::new();
         let root_state = SearchState::new(*game);
 
         let root_id = tree.add(root_state, None);
-        let mut i = 0;
+        let mut iterations = 0;
 
         let timer = Instant::now();
-        while timer.elapsed().as_millis() < 1000 {
+        loop {
+            if iterations % 2048 == 0 && timer.elapsed().as_millis() >= search_time {
+                break;
+            }
+
             // selection
             let node_id = AiPlayer::select(root_id, &tree);
 
@@ -57,15 +63,15 @@ impl AiPlayer {
             let node_id = AiPlayer::expand(node_id, &mut tree);
 
             // simulation
-            let result = AiPlayer::simulate(node_id, &tree);
+            let result = AiPlayer::simulate(node_id, &tree, me);
 
             // backpropagation
             AiPlayer::backpropagate(result, Some(node_id), &mut tree);
-            i += 1;
+            iterations += 1;
         }
 
         let (best_move, mean_score) = tree.best_move(root_id);
-        println!("ran {i} simulations, mean: {mean_score}");
+        println!("ran {iterations} simulations, mean: {mean_score}");
 
         best_move
     }
@@ -83,7 +89,7 @@ impl AiPlayer {
         tree.random_child(node_id)
     }
 
-    fn simulate(node_id: usize, tree: &SearchTree) -> f32 {
+    fn simulate(node_id: usize, tree: &SearchTree, me: usize) -> f32 {
         let mut game = tree.get_game(node_id);
         let mut game_state = game.get_state();
 
@@ -94,7 +100,7 @@ impl AiPlayer {
 
         match game_state {
             GameState::Draw => 0.5,
-            GameState::Win(player) => player as f32,
+            GameState::Win(winner) => (me == winner) as u32 as f32,
             GameState::Playing => panic!(),
         }
     }
