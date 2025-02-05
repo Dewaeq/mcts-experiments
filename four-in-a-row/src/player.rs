@@ -9,14 +9,14 @@ use crate::{
 #[derive(Clone, Copy)]
 pub enum Player {
     Human,
-    Ai(u128),
+    Ai(bool, u128),
 }
 
 impl Player {
     pub fn get_move(self, game: &Game) -> usize {
         match self {
             Player::Human => HumanPlayer::get_move(game),
-            Player::Ai(search_time) => AiPlayer::get_move(game, search_time),
+            Player::Ai(use_uct, search_time) => AiPlayer::get_move(game, use_uct, search_time),
         }
     }
 }
@@ -41,9 +41,7 @@ impl HumanPlayer {
 }
 
 impl AiPlayer {
-    fn get_move(game: &Game, search_time: u128) -> usize {
-        let me = game.turn();
-
+    fn get_move(game: &Game, use_uct: bool, search_time: u128) -> usize {
         let mut tree = SearchTree::new();
         let root_state = SearchState::new(*game);
 
@@ -57,28 +55,41 @@ impl AiPlayer {
             }
 
             // selection
-            let node_id = AiPlayer::select(root_id, &tree);
+            let selected_id = AiPlayer::select(root_id, use_uct, &tree);
 
             // expansion
-            let node_id = AiPlayer::expand(node_id, &mut tree);
+            let child_id = AiPlayer::expand(selected_id, &mut tree);
 
             // simulation
-            let result = AiPlayer::simulate(node_id, &tree, me);
+            let reward = AiPlayer::simulate(child_id, &tree);
 
             // backpropagation
-            AiPlayer::backpropagate(result, Some(node_id), &mut tree);
+            AiPlayer::backpropagate(reward, Some(child_id), &mut tree);
             iterations += 1;
         }
 
+        //for state in tree.get_child_states(root_id) {
+        //    println!(
+        //        "{}\t{}\t{}",
+        //        state.game.last_move(),
+        //        state.num_simulations,
+        //        state.mean_score()
+        //    );
+        //}
+
         let (best_move, mean_score) = tree.best_move(root_id);
-        println!("ran {iterations} simulations, mean: {mean_score}");
+        //println!("ran {iterations} simulations, mean: {mean_score}");
 
         best_move
     }
 
-    fn select(mut node_id: usize, tree: &SearchTree) -> usize {
+    fn select(mut node_id: usize, use_uct: bool, tree: &SearchTree) -> usize {
         while tree.is_fully_expanded(node_id) && !tree.is_terminal(node_id) {
-            node_id = tree.random_child(node_id);
+            if use_uct {
+                node_id = tree.uct_child(node_id, 1.);
+            } else {
+                node_id = tree.random_child(node_id);
+            }
         }
 
         node_id
@@ -89,9 +100,10 @@ impl AiPlayer {
         tree.random_child(node_id)
     }
 
-    fn simulate(node_id: usize, tree: &SearchTree, me: usize) -> f32 {
+    fn simulate(node_id: usize, tree: &SearchTree) -> f32 {
         let mut game = tree.get_game(node_id);
         let mut game_state = game.get_state();
+        let me = 1 - game.turn();
 
         while matches!(game_state, GameState::Playing) {
             game.do_move(AiPlayer::random_action(&game));
@@ -100,8 +112,9 @@ impl AiPlayer {
 
         match game_state {
             GameState::Draw => 0.5,
-            GameState::Win(winner) => (me == winner) as u32 as f32,
-            GameState::Playing => panic!(),
+            GameState::Win(winner) if winner == me => 1.,
+            GameState::Win(winner) if winner != me => 0.,
+            _ => panic!(),
         }
     }
 
@@ -115,10 +128,12 @@ impl AiPlayer {
         col
     }
 
-    fn backpropagate(result: f32, mut node_id: Option<usize>, tree: &mut SearchTree) {
+    fn backpropagate(mut reward: f32, mut node_id: Option<usize>, tree: &mut SearchTree) {
         while let Some(id) = node_id {
-            tree.update_state(id, result);
             node_id = tree.get_parent_id(id);
+            tree.update_state(id, reward);
+
+            reward = 1. - reward;
         }
     }
 }

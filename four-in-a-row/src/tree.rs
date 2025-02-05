@@ -86,6 +86,21 @@ impl SearchTree {
         *fastrand::choice(self.nodes[node_id].child_ids.iter()).unwrap_or(&node_id)
     }
 
+    pub fn uct_child(&self, node_id: usize, c: f32) -> usize {
+        let n = self.states[node_id].num_simulations;
+
+        *self.nodes[node_id]
+            .child_ids
+            .iter()
+            .max_by(|&&x, &&y| {
+                self.states[x]
+                    .uct_score(n, c)
+                    .partial_cmp(&self.states[y].uct_score(n, c))
+                    .unwrap()
+            })
+            .unwrap_or(&node_id)
+    }
+
     pub fn get_parent_id(&self, node_id: usize) -> Option<usize> {
         self.nodes[node_id].parent_id
     }

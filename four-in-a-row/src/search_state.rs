@@ -19,4 +19,9 @@ impl SearchState {
     pub fn mean_score(&self) -> f32 {
         self.score / self.num_simulations as f32
     }
+
+    pub fn uct_score(&self, parent_sims: usize, c: f32) -> f32 {
+        self.mean_score()
+            + c * (2. * (parent_sims as f32).ln() / self.num_simulations as f32).sqrt()
+    }
 }

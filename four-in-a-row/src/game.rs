@@ -32,20 +32,25 @@ impl Game {
         (self.grid.len(), self.grid[0].len())
     }
 
-    pub fn main_loop(&mut self) {
-        println!("{self}");
+    pub fn main_loop(&mut self, log: bool) {
+        if log {
+            println!("{self}");
+        }
 
         while !self.is_terminal() {
             let col = self.players[self.turn].get_move(self);
             self.do_move(col);
 
-            println!("{self}");
+            if log {
+                println!("{self}");
+            }
         }
 
-        println!("Player {} won!", 1 - self.turn);
+        if log {
+            println!("Player {} won!", 1 - self.turn);
+        }
     }
 
-    // row=255 means no row specified
     pub fn do_move(&mut self, col: usize) {
         let symbol = match self.turn {
             0 => 'x',
