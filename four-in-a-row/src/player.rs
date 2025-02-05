@@ -9,14 +9,14 @@ use crate::{
 #[derive(Clone, Copy)]
 pub enum Player {
     Human,
-    Ai(bool, u128),
+    Ai(u128),
 }
 
 impl Player {
     pub fn get_move(self, game: &Game) -> usize {
         match self {
             Player::Human => HumanPlayer::get_move(game),
-            Player::Ai(use_uct, search_time) => AiPlayer::get_move(game, use_uct, search_time),
+            Player::Ai(search_time) => AiPlayer::get_move(game, search_time),
         }
     }
 }
@@ -41,7 +41,7 @@ impl HumanPlayer {
 }
 
 impl AiPlayer {
-    fn get_move(game: &Game, use_uct: bool, search_time: u128) -> usize {
+    fn get_move(game: &Game, search_time: u128) -> usize {
         let mut tree = SearchTree::new();
         let root_state = SearchState::new(*game);
 
@@ -55,7 +55,7 @@ impl AiPlayer {
             }
 
             // selection
-            let selected_id = AiPlayer::select(root_id, use_uct, &tree);
+            let selected_id = AiPlayer::select(root_id, &tree);
 
             // expansion
             let child_id = AiPlayer::expand(selected_id, &mut tree);
@@ -68,28 +68,24 @@ impl AiPlayer {
             iterations += 1;
         }
 
-        //for state in tree.get_child_states(root_id) {
-        //    println!(
-        //        "{}\t{}\t{}",
-        //        state.game.last_move(),
-        //        state.num_simulations,
-        //        state.mean_score()
-        //    );
-        //}
+        for state in tree.get_child_states(root_id) {
+            println!(
+                "{}\t{}\t{}",
+                state.game.last_move(),
+                state.num_simulations,
+                state.mean_score()
+            );
+        }
 
         let (best_move, mean_score) = tree.best_move(root_id);
-        //println!("ran {iterations} simulations, mean: {mean_score}");
+        println!("ran {iterations} simulations, mean: {mean_score}");
 
         best_move
     }
 
-    fn select(mut node_id: usize, use_uct: bool, tree: &SearchTree) -> usize {
+    fn select(mut node_id: usize, tree: &SearchTree) -> usize {
         while tree.is_fully_expanded(node_id) && !tree.is_terminal(node_id) {
-            if use_uct {
-                node_id = tree.uct_child(node_id, 1.);
-            } else {
-                node_id = tree.random_child(node_id);
-            }
+            node_id = tree.uct_child(node_id, 1.);
         }
 
         node_id
