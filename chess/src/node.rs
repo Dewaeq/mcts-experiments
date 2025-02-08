@@ -38,7 +38,21 @@ where
         self.num_sims != 0
     }
 
-    pub fn uct_score(&self) -> f32 {
-        todo!()
+    pub fn num_sims(&self) -> usize {
+        self.num_sims
+    }
+
+    pub fn mean_score(&self) -> f32 {
+        self.score / self.num_sims as f32
+    }
+
+    pub fn uct_score(&self, parent_sims: usize) -> f32 {
+        let n = self.num_sims as f32;
+        self.score / n + (2. * (parent_sims as f32).ln() / n).sqrt()
+    }
+
+    pub fn update(&mut self, reward: f32) {
+        self.num_sims += 1;
+        self.score += reward;
     }
 }
