@@ -48,6 +48,7 @@ where
         }
 
         println!("{} its/sec", iterations as f32 / search_time as f32 * 1000.);
+        println!("tree size: {}", self.tree.size());
         println!("continuation: ");
         for action in self.tree.continuation(root_id) {
             print!("{action}, ");

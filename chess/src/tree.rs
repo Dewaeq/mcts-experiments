@@ -17,6 +17,10 @@ impl<T> Tree<T>
 where
     T: State,
 {
+    pub fn size(&self) -> usize {
+        self.nodes.len()
+    }
+
     pub fn add_state(&mut self, state: T, parent_id: Option<usize>) -> usize {
         let id = self.index;
         let node = Node::new(state, id, parent_id);
@@ -116,7 +120,7 @@ where
         //    .all(|&child_id| self.nodes[child_id].is_explored())
     }
 
-    pub fn is_terminal(&self, node_id: usize) -> bool {
+    pub fn is_terminal(&mut self, node_id: usize) -> bool {
         self.nodes[node_id].state.is_terminal()
     }
 

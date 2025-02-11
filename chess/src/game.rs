@@ -1,5 +1,3 @@
-use std::num::NonZero;
-
 use shakmaty::{Chess, Move, Outcome, Position};
 
 use crate::state::State;
@@ -8,13 +6,17 @@ use crate::state::State;
 pub struct Game {
     pub pos: Chess,
     pub last_action: Option<Move>,
+    cached_is_terminal: Option<bool>,
 }
 
 impl Game {
     pub fn new(pos: Chess) -> Self {
+        let is_terminal = pos.is_game_over();
+
         Game {
             pos,
             last_action: None,
+            cached_is_terminal: Some(is_terminal),
         }
     }
 }
@@ -30,14 +32,13 @@ impl State for Game {
     }
 
     fn apply_action(&self, action: Self::Action) -> Self {
-        Game {
-            pos: {
-                let mut pos = self.pos.clone();
-                pos.play_unchecked(&action);
-                pos
-            },
-            last_action: Some(action),
-        }
+        let mut pos = self.pos.clone();
+        pos.play_unchecked(&action);
+
+        let mut game = Game::new(pos);
+        game.last_action = Some(action);
+
+        game
     }
 
     fn last_action(&self) -> Option<Self::Action> {
@@ -54,13 +55,12 @@ impl State for Game {
                     0.
                 }
             }
-            // treat too long playouts as draws
-            _ => 0.5,
+            // treat too long playouts as a loss
+            _ => 0.,
         }
     }
 
-    fn is_terminal(&self) -> bool {
-        //self.pos.is_game_over()
-        self.pos.fullmoves() > NonZero::new(200).unwrap() || self.pos.is_game_over()
+    fn is_terminal(&mut self) -> bool {
+        self.cached_is_terminal.unwrap()
     }
 }
