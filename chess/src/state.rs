@@ -14,5 +14,5 @@ pub trait State {
     /// from the perspective of another state
     fn reward(&self, perspective: &Self) -> f32;
 
-    fn is_terminal(&mut self) -> bool;
+    fn is_terminal(&mut self, depth: usize) -> bool;
 }

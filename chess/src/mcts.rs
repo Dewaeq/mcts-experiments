@@ -60,10 +60,12 @@ where
 
     pub fn simulate(&self, node_id: usize) -> f32 {
         let mut state = self.tree.get_state(node_id);
+        let mut depth = 0;
 
-        while !state.is_terminal() {
+        while !state.is_terminal(depth) {
             let action = state.possible_actions().pop().unwrap();
             state = state.apply_action(action);
+            depth += 1;
         }
 
         state.reward(self.tree.get_state_ref(node_id))

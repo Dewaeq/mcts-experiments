@@ -121,7 +121,7 @@ where
     }
 
     pub fn is_terminal(&mut self, node_id: usize) -> bool {
-        self.nodes[node_id].state.is_terminal()
+        self.nodes[node_id].state.is_terminal(0)
     }
 
     pub fn update_node(&mut self, node_id: usize, reward: f32) {

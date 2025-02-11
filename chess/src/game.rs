@@ -60,7 +60,7 @@ impl State for Game {
         }
     }
 
-    fn is_terminal(&mut self) -> bool {
-        self.cached_is_terminal.unwrap()
+    fn is_terminal(&mut self, depth: usize) -> bool {
+        self.cached_is_terminal.unwrap() || depth >= 30
     }
 }
